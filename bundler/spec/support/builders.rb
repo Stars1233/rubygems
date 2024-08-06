@@ -27,8 +27,6 @@ module Spec
     end
 
     def build_repo1
-      rake_path = Dir["#{base_system_gems}/**/rake*.gem"].first
-
       build_repo gem_repo1 do
         FileUtils.cp rake_path, "#{gem_repo1}/gems/"
 
@@ -88,10 +86,6 @@ module Spec
 
         build_gem "myrack-test", no_default: true do |s|
           s.write "lib/myrack/test.rb", "MYRACK_TEST = '1.0'"
-        end
-
-        build_gem "platform_specific" do |s|
-          s.platform = Gem::Platform.local
         end
 
         build_gem "platform_specific" do |s|
@@ -194,9 +188,15 @@ module Spec
 
     # A repo that has no pre-installed gems included. (The caller completely
     # determines the contents with the block.)
+    def build_repo3(**kwargs, &blk)
+      build_empty_repo gem_repo3, **kwargs, &blk
+    end
+
+    # Like build_repo3, this is a repo that has no pre-installed gems included.
+    # We have two different methods for situations where two different empty
+    # sources are needed.
     def build_repo4(**kwargs, &blk)
-      FileUtils.rm_rf gem_repo4
-      build_repo(gem_repo4, **kwargs, &blk)
+      build_empty_repo gem_repo4, **kwargs, &blk
     end
 
     def update_repo4(&blk)
@@ -231,12 +231,9 @@ module Spec
     end
 
     def check_test_gems!
-      rake_path = Dir["#{base_system_gems}/**/rake*.gem"].first
-
       if rake_path.nil?
         FileUtils.rm_rf(base_system_gems)
         Spec::Rubygems.install_test_deps
-        rake_path = Dir["#{base_system_gems}/**/rake*.gem"].first
       end
 
       if rake_path.nil?
@@ -315,6 +312,11 @@ module Spec
     end
 
     private
+
+    def build_empty_repo(gem_repo, **kwargs, &blk)
+      FileUtils.rm_rf gem_repo
+      build_repo(gem_repo, **kwargs, &blk)
+    end
 
     def build_with(builder, name, args, &blk)
       @_build_path ||= nil
